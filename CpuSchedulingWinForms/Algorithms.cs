@@ -9,7 +9,235 @@ namespace CpuSchedulingWinForms
 {
     public static class Algorithms
     {
-        public static void fcfsAlgorithm(string userInput)
+        public static void srtfAlgorithm(string userInput)
+        {
+			int np = Convert.ToInt16(userInput); // # processes
+            double[] arrivalTime = new double[np];
+            double[] burstTime = new double[np];
+            double[] remainingTime = new double[np];
+            double[] turnAroundTime = new double[np];
+            double[] waitTime = new double[np];
+            bool[] finished = new bool[np];
+
+            double activeTime = 0;
+            double completedTime = 0;
+            int completedProcesses = 0;
+
+			DialogResult result = MessageBox.Show("Shortest Remaining Time First Scheduling ", "", MessageBoxButtons.YesNo, MessageBoxIcon.Information);
+            if (result == DialogResult.Yes)
+            {
+                try
+                {
+                    for (int i = 0; i < np; i++)
+                    {
+                        string input =
+                        Microsoft.VisualBasic.Interaction.InputBox("Enter Arrival time: ",
+                                                           "Arrival time for P" + (i + 1),
+                                                           "",
+                                                           -1, -1);
+                        arrivalTime[i] = Convert.ToInt64(input);
+                    }
+
+                    // Get Burst time for each process
+                    for (int i = 0; i < np; i++)
+                    {
+                        string input =
+                        Microsoft.VisualBasic.Interaction.InputBox("Enter Burst time: ",
+                                                           "Burst time for P" + (i + 1),
+                                                           "",
+                                                           -1, -1);
+                        burstTime[i] = Convert.ToInt64(input);
+
+                    }
+
+                    // Designate Remaining Time 
+                    for (int i = 0; i < np; i++)
+                    {
+                        remainingTime[i] = burstTime[i];
+                    }
+
+                    
+                    while (completedProcesses != np)
+                    {
+                        double minRemainingTime = int.MaxValue;
+                        int currentProcess = int.MinValue;
+                        for (int i = 0; i < np; i++)
+                        {
+                            if (arrivalTime[i] <= completedTime && !finished[i] && remainingTime[i] < minRemainingTime)
+                            {
+                                minRemainingTime = remainingTime[i];
+                                currentProcess = i;
+                            }
+                            
+                        }
+
+                        completedTime++;
+                        if (currentProcess != int.MinValue)
+                        {
+							activeTime++;
+							remainingTime[currentProcess] -= 1;
+                            if (remainingTime[currentProcess] == 0)
+                            {
+                                finished[currentProcess] = true;
+                                turnAroundTime[currentProcess] = completedTime - arrivalTime[currentProcess];
+                                waitTime[currentProcess] = turnAroundTime[currentProcess] - burstTime[currentProcess];
+                                completedProcesses++;
+                            }
+                        }
+
+                    }
+
+                    double avgTurnAroundTime = 0;
+                    foreach (double time in turnAroundTime) { avgTurnAroundTime += time; }
+                    avgTurnAroundTime /= np;
+
+                    double avgWaitTime = 0;
+                    foreach (double wait in waitTime) { avgWaitTime += wait; }
+                    avgWaitTime /= np;
+
+                    for (int i = 0; i < np; i++)
+                    {
+                        MessageBox.Show("Turnaround time for P" + (i + 1) + " = " + turnAroundTime[i], "Wait", MessageBoxButtons.OK, MessageBoxIcon.None);
+                        MessageBox.Show("Waiting time for P" + (i + 1) + " = " + waitTime[i], "Wait", MessageBoxButtons.OK, MessageBoxIcon.None);
+
+                    }
+
+                    MessageBox.Show("Average turnaround time for " + np + " processes" + " = " + avgTurnAroundTime + " sec(s)", "Average Awaiting Time", MessageBoxButtons.OK, MessageBoxIcon.None);
+                    MessageBox.Show("Average waiting time for " + np + " processes" + " = " + avgWaitTime + " sec(s)", "Average Awaiting Time", MessageBoxButtons.OK, MessageBoxIcon.None);
+                    MessageBox.Show("CPU Utilization time for " + np + " processes" + " = " + (activeTime / completedTime) + " sec(s)", "CPU Utilization Time", MessageBoxButtons.OK, MessageBoxIcon.None);
+                
+                }
+
+                catch (Exception e)
+                {
+
+                }
+			}
+
+		}
+
+		public static void hrrnAlgorithm(string userInput)
+        {
+            int np = int.Parse(userInput);
+			double[] arrivalTime = new double[np];
+			double[] burstTime = new double[np];
+            double[] respRatio = new double[np];
+			bool[] finished = new bool[np];
+
+			double[] turnAroundTime = new double[np];
+			double[] waitTime = new double[np];
+            double[] timeCompleted = new double[np];
+
+
+            bool[] isActive = new bool[np]; // used to measure the active CPU time
+            bool hasArrived = false; // processing algorithm will be skipped and time incremented if none of the arrival times reached
+            
+
+			double activeTime = 0;
+			double completedTime = 0;
+			int completedProcesses = 0;
+
+			DialogResult result = MessageBox.Show("Highest Response Ratio Next Scheduling ", "", MessageBoxButtons.YesNo, MessageBoxIcon.Information);
+
+            if (result == DialogResult.Yes)
+            {
+                for (int i = 0; i < np; i++)
+                {
+                    // Assign each processes' arrival and burst times
+					string input =
+					Microsoft.VisualBasic.Interaction.InputBox("Enter Arrival time: ",
+													   "Arrival time for P" + (i + 1),
+													   "",
+													   -1, -1);
+					arrivalTime[i] = Convert.ToInt64(input);
+
+					input =
+					Microsoft.VisualBasic.Interaction.InputBox("Enter Burst time: ",
+													   "Burst time for P" + (i + 1),
+													   "",
+													   -1, -1);
+					burstTime[i] = Convert.ToInt64(input);
+				}
+                
+                while (completedProcesses != np)
+                {
+                  
+                    for (int i = 0; i < np; i++)
+                    {
+                        if (arrivalTime[i] <= completedTime && !finished[i])
+                        {
+                            int wait = Convert.ToInt32(completedTime - arrivalTime[i]);
+                            respRatio[i] = (int)(wait + burstTime[i]) / burstTime[i];
+                            hasArrived = true;
+                            isActive[i] = true;
+                        }
+                    }
+
+                    if (!hasArrived) { completedTime++; continue; }
+                    
+
+                    int highestRRprocess = int.MinValue;
+                    int maxRatio = int.MinValue;
+                    for (int i = 0; i < np; i++)
+                    {
+                        if (respRatio[i] > maxRatio && isActive[i])
+                        {
+                            maxRatio = (int)respRatio[i];
+                            highestRRprocess = i;
+                        }
+                    }
+
+
+					for (int i = 0; i < np; i++)
+					{
+						if (isActive[i])
+						{
+							hasArrived = true;
+							break;
+						}
+						hasArrived = false;
+					}
+
+
+
+                    if (!isActive[highestRRprocess]) { completedTime++; continue; }
+
+
+                    activeTime+= (int)burstTime[highestRRprocess];
+                    completedTime += (int)burstTime[highestRRprocess]; // Realized here I should have just made the arrays int
+                    timeCompleted[highestRRprocess] = completedTime;
+                    finished[highestRRprocess] = true;
+                    isActive[highestRRprocess] = false;
+                    completedProcesses++;
+
+				}
+
+                double avgTurnAround = 0;
+                double avgWaitTime = 0;
+                for (int i = 0; i < np; i++)
+                {
+                    turnAroundTime[i] = timeCompleted[i] - arrivalTime[i];
+                    waitTime[i] = turnAroundTime[i] - burstTime[i];
+
+                    avgTurnAround += turnAroundTime[i];
+                    avgWaitTime += waitTime[i];
+					MessageBox.Show("Completion time for P" + (i + 1) + " = " + timeCompleted[i], "Wait", MessageBoxButtons.OK, MessageBoxIcon.None);
+
+					MessageBox.Show("Turnaround time for P" + (i + 1) + " = " + turnAroundTime[i], "Wait", MessageBoxButtons.OK, MessageBoxIcon.None);
+					MessageBox.Show("Waiting time for P" + (i + 1) + " = " + waitTime[i], "Wait", MessageBoxButtons.OK, MessageBoxIcon.None);
+				}
+                avgTurnAround /= np;
+                avgWaitTime /= np;
+                double cpuUtilTime = activeTime / completedTime;
+
+				MessageBox.Show("Average Turnaround time for Processes" + (np) + " = " + avgTurnAround, "Avg TT", MessageBoxButtons.OK, MessageBoxIcon.None);
+				MessageBox.Show("Average Waiting time for Processes" + (np) + " = " + avgWaitTime, "Avg Wait", MessageBoxButtons.OK, MessageBoxIcon.None);
+				MessageBox.Show("CPU Utilization for Processes" + (np) + " = " + cpuUtilTime, "Avg Wait", MessageBoxButtons.OK, MessageBoxIcon.None);
+
+			}
+		}
+
+		public static void fcfsAlgorithm(string userInput)
         {
             int np = Convert.ToInt16(userInput);
             int npX2 = np * 2;
@@ -24,6 +252,8 @@ namespace CpuSchedulingWinForms
 
             if (result == DialogResult.Yes)
             {
+
+                // Gets the burst time for each process
                 for (num = 0; num <= np - 1; num++)
                 {
                     //MessageBox.Show("Enter Burst time for P" + (num + 1) + ":", "Burst time for Process", MessageBoxButtons.OK, MessageBoxIcon.Question);
@@ -36,9 +266,6 @@ namespace CpuSchedulingWinForms
                                                        -1, -1);
 
                     bp[num] = Convert.ToInt64(input);
-
-                    //var input = Console.ReadLine();
-                    //bp[num] = Convert.ToInt32(input);
                 }
 
                 for (num = 0; num <= np - 1; num++)
